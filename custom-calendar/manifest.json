@@ -1,0 +1,19 @@
+{
+  "id": "custom-calendar",
+  "name": "Můj Kalendář",
+  "version": "1.0.0",
+  "minNoctaliaVersion": "4.6.6",
+  "author": "Valdemar",
+  "license": "MIT",
+  "description": "Vlastní kalendářový widget propojený s gcalcli.",
+  "tags": [
+    "Bar",
+    "Productivity"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "dependencies": {
+    "plugins": []
+  }
+}
