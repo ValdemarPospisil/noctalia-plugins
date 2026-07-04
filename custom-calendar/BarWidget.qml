@@ -55,56 +55,82 @@ Item {
                     return;
                 }
                 
-                var found = false;
+                var foundFirst = false;
+                var tooltipLines = [];
+                var todayDateStr = new Date().toISOString().split('T')[0];
+                
                 for (var i = 1; i < lines.length; i++) {
                     var parts = lines[i].split('\t');
                     if (parts.length >= 5) {
                         var startDate = parts[0].trim();
                         var startTime = parts[1].trim();
+                        var endDate = parts[2].trim();
                         var title = parts[4].trim();
                         
-                        if (startTime === "") continue; // Celodenní událost
-                        
-                        // Parsujeme datum a čas v JS
-                        var dtStr = startDate + "T" + startTime + ":00";
-                        var eventDt = new Date(dtStr);
-                        var now = new Date();
-                        
-                        var diffMs = eventDt - now;
-                        var minutesLeft = Math.floor(diffMs / 60000);
-                        
-                        if (minutesLeft > 0) {
-                            root.widgetText = "📅 " + title + " (" + startTime + " - za " + minutesLeft + " min)";
-                        } else {
-                            root.widgetText = "📅 " + title + " (Nyní!)";
-                        }
-                        root.widgetTooltip = title;
-                        
-                        var eventId = title + startDate + startTime;
-                        
-                        // 10 minut notifikace
-                        if (minutesLeft >= 9 && minutesLeft <= 10) {
-                            if (!root.notifiedEvents[eventId + "_10"]) {
-                                sendNotification("Meeting za 10 minut!", title + " začíná v " + startTime);
-                                root.notifiedEvents[eventId + "_10"] = true;
+                        if (startTime === "") {
+                            if (startDate === todayDateStr) {
+                                tooltipLines.push("📅 Celý den: " + title);
                             }
+                            continue; // Pro widget na liště přeskočíme celodenní
                         }
                         
-                        // 1 minuta notifikace
-                        if (minutesLeft >= 0 && minutesLeft <= 1) {
-                            if (!root.notifiedEvents[eventId + "_1"]) {
-                                sendNotification("Meeting začíná!", title + " právě začíná.");
-                                root.notifiedEvents[eventId + "_1"] = true;
+                        tooltipLines.push("🕒 " + startDate + " " + startTime + " - " + title);
+                        
+                        if (!foundFirst) {
+                            var dtStr = startDate + "T" + startTime + ":00";
+                            var eventDt = new Date(dtStr);
+                            var now = new Date();
+                            
+                            var diffMs = eventDt - now;
+                            var minutesLeft = Math.floor(diffMs / 60000);
+                            
+                            var timeLeftStr = "";
+                            if (minutesLeft >= 1440) {
+                                var days = Math.floor(minutesLeft / 1440);
+                                var hours = Math.floor((minutesLeft % 1440) / 60);
+                                timeLeftStr = days + "d " + hours + "h";
+                            } else if (minutesLeft >= 60) {
+                                var hours = Math.floor(minutesLeft / 60);
+                                var mins = minutesLeft % 60;
+                                timeLeftStr = hours + "h " + mins + "m";
+                            } else {
+                                timeLeftStr = minutesLeft + " min";
                             }
+                            
+                            if (minutesLeft > 0) {
+                                root.widgetText = "📅 " + title + " (" + startTime + " - za " + timeLeftStr + ")";
+                            } else {
+                                root.widgetText = "📅 " + title + " (Nyní!)";
+                            }
+                            
+                            var eventId = title + startDate + startTime;
+                            
+                            if (minutesLeft >= 9 && minutesLeft <= 10) {
+                                if (!root.notifiedEvents[eventId + "_10"]) {
+                                    sendNotification("Meeting za 10 minut!", title + " začíná v " + startTime);
+                                    root.notifiedEvents[eventId + "_10"] = true;
+                                }
+                            }
+                            
+                            if (minutesLeft >= 0 && minutesLeft <= 1) {
+                                if (!root.notifiedEvents[eventId + "_1"]) {
+                                    sendNotification("Meeting začíná!", title + " právě začíná.");
+                                    root.notifiedEvents[eventId + "_1"] = true;
+                                }
+                            }
+                            
+                            foundFirst = true;
                         }
-                        
-                        found = true;
-                        break;
                     }
                 }
                 
-                if (!found) {
+                if (!foundFirst) {
                     root.widgetText = "Žádný meeting";
+                }
+                
+                if (tooltipLines.length > 0) {
+                    root.widgetTooltip = tooltipLines.join('\n');
+                } else {
                     root.widgetTooltip = "Máš volno";
                 }
             }
