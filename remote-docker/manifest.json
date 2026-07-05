@@ -1,0 +1,18 @@
+{
+  "id": "remote-docker",
+  "name": "Domácí Server",
+  "version": "1.0.0",
+  "minNoctaliaVersion": "4.6.6",
+  "author": "Valdemar",
+  "description": "Správa Docker kontejnerů na vzdáleném serveru",
+  "tags": ["Server", "Docker", "Panel"],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml",
+    "panel": "Panel.qml"
+  },
+  "metadata": {
+    "defaultSettings": {
+      "remoteHost": "valdemar@void"
+    }
+  }
+}
