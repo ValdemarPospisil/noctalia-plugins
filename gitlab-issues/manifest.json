@@ -1,0 +1,13 @@
+{
+  "id": "gitlab-issues",
+  "name": "GitLab Úkoly",
+  "version": "1.0.0",
+  "minNoctaliaVersion": "4.6.6",
+  "author": "Valdemar",
+  "description": "GitLab Issues and MRs assigned to me",
+  "tags": ["GitLab", "Work", "Panel"],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml",
+    "panel": "Panel.qml"
+  }
+}
