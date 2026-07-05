@@ -11,8 +11,8 @@ Item {
     id: root
 
     property var pluginApi: null
-    property real contentPreferredHeight: 700 * Style.uiScaleRatio
-    property real contentPreferredWidth: 500 * Style.uiScaleRatio
+    property real contentPreferredHeight: 800 * Style.uiScaleRatio
+    property real contentPreferredWidth: 600 * Style.uiScaleRatio
 
     readonly property var geometryPlaceholder: panelContainer
 
@@ -46,25 +46,34 @@ Item {
                     else if (labels.indexOf("Sprint") !== -1) category = "Sprint";
                     else if (labels.indexOf("Backlog") !== -1) category = "Backlog";
                     
+                    var issueRef = issue.references && issue.references.full ? issue.references.full : "";
+                    var issueProjectName = issueRef.split("#")[0].split("/").pop();
+                    
                     parsedList.push({
                         type: "issue",
                         title: issue.title,
                         category: category,
                         url: issue.web_url,
-                        idStr: "#" + issue.iid
+                        idStr: "#" + issue.iid,
+                        projectName: issueProjectName
                     });
                 }
                 
                 // Process MRs
                 for(var j=0; j<mrs.length; j++) {
                     var mr = mrs[j];
+                    
+                    var mrRef = mr.references && mr.references.full ? mr.references.full : "";
+                    var mrProjectName = mrRef.split("!")[0].split("/").pop();
+                    
                     parsedList.push({
                         type: "mr",
                         title: mr.title,
                         category: "Merge Requests",
                         url: mr.web_url,
                         idStr: "!" + mr.iid,
-                        branch: mr.source_branch
+                        branch: mr.source_branch,
+                        projectName: mrProjectName
                     });
                 }
                 
@@ -147,6 +156,7 @@ Item {
                     clip: true
                     model: root.listModel
                     spacing: Style.marginM
+                    bottomPadding: Style.marginXXL
                     visible: !root.loading && root.listModel.length > 0
                     
                     section.property: "category"
@@ -177,10 +187,9 @@ Item {
                             spacing: Style.marginM
 
                             NIcon {
-                                icon: modelData.type === "mr" ? "git-merge" : "alert-circle"
-                                color: modelData.type === "mr" ? Color.mSuccess : Color.mWarning
-                                Layout.alignment: Qt.AlignTop
-                                Layout.topMargin: Style.marginXXS
+                                icon: modelData.type === "mr" ? "git-merge" : "circle-dot"
+                                color: modelData.type === "mr" ? Color.mSuccess : Color.mPrimary
+                                Layout.alignment: Qt.AlignVCenter
                             }
 
                             ColumnLayout {
@@ -203,7 +212,7 @@ Item {
                                 }
                                 NText {
                                     Layout.fillWidth: true
-                                    text: modelData.idStr + (modelData.branch ? " | " + modelData.branch : "")
+                                    text: (modelData.projectName ? modelData.projectName + " " : "") + modelData.idStr + (modelData.branch ? " | " + modelData.branch : "")
                                     pointSize: Style.fontSizeS
                                     color: Color.mOnSurfaceVariant
                                 }
@@ -213,7 +222,7 @@ Item {
                                 visible: modelData.type === "mr"
                                 icon: "copy"
                                 tooltipText: "Kopírovat větev do schránky"
-                                Layout.alignment: Qt.AlignTop
+                                Layout.alignment: Qt.AlignVCenter
                                 onClicked: {
                                     copyProcess.textToCopy = modelData.branch;
                                     copyProcess.running = true;
