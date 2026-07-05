@@ -67,14 +67,17 @@ Item {
                         var endDate = parts[2].trim();
                         var title = parts[4].trim();
                         
-                        if (startTime === "") {
-                            if (startDate === todayDateStr) {
+                        if (startDate === todayDateStr) {
+                            if (startTime === "") {
                                 tooltipLines.push("📅 Celý den: " + title);
+                            } else {
+                                tooltipLines.push("🕒 " + startTime + " - " + title);
                             }
-                            continue; // Pro widget na liště přeskočíme celodenní
                         }
                         
-                        tooltipLines.push("🕒 " + startDate + " " + startTime + " - " + title);
+                        if (startTime === "") {
+                            continue; // Pro widget na liště přeskočíme celodenní
+                        }
                         
                         if (!foundFirst) {
                             var dtStr = startDate + "T" + startTime + ":00";
