@@ -24,16 +24,48 @@ Item {
 
     Process {
         id: psProcess
-        command: ["ssh", "-o", "ConnectTimeout=2", root.host, "docker ps -a --format '{{json .}}'"]
+        command: ["ssh", "-o", "ConnectTimeout=2", root.host, "docker ps -a --format '{{json .}}' && echo '---STATS---' && docker stats --no-stream --format '{{json .}}'"]
         stdout: StdioCollector {
             onStreamFinished: {
                 var output = this.text.trim();
-                var lines = output.split('\n');
-                var parsed = [];
-                for (var i = 0; i < lines.length; i++) {
-                    if (lines[i] === "") continue;
+                var parts = output.split('---STATS---');
+                var psLines = parts[0] ? parts[0].trim().split('\n') : [];
+                var statsLines = parts.length > 1 && parts[1] ? parts[1].trim().split('\n') : [];
+                
+                var statsMap = {};
+                for (var j = 0; j < statsLines.length; j++) {
+                    if (statsLines[j] === "") continue;
                     try {
-                        var c = JSON.parse(lines[i]);
+                        var st = JSON.parse(statsLines[j]);
+                        statsMap[st.Name] = st;
+                    } catch (e) {}
+                }
+
+                var hostname = root.host;
+                if (hostname.indexOf("@") !== -1) {
+                    hostname = hostname.split("@")[1];
+                }
+
+                var parsed = [];
+                for (var i = 0; i < psLines.length; i++) {
+                    if (psLines[i] === "") continue;
+                    try {
+                        var c = JSON.parse(psLines[i]);
+                        var st = statsMap[c.Names];
+                        if (st) {
+                            c.cpu = st.CPUPerc;
+                            c.mem = st.MemUsage;
+                        }
+                        
+                        var url = "";
+                        if (c.Ports && c.Ports !== "") {
+                            var m = c.Ports.match(/:(\d+)->/);
+                            if (m && m[1]) {
+                                url = "http://" + hostname + ":" + m[1];
+                            }
+                        }
+                        c.url = url;
+                        
                         parsed.push(c);
                     } catch (e) {
                         console.log("Parse error: " + e);
@@ -145,11 +177,21 @@ Item {
                                     text: modelData.Names
                                     font.weight: Font.Bold
                                     pointSize: Style.fontSizeM
-                                    color: Color.mOnSurface
+                                    color: modelData.url ? Color.mPrimary : Color.mOnSurface
+                                    
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: modelData.url ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                        onClicked: {
+                                            if (modelData.url) {
+                                                pluginApi?.openUrl(modelData.url);
+                                            }
+                                        }
+                                    }
                                 }
                                 NText {
                                     Layout.fillWidth: true
-                                    text: modelData.Status
+                                    text: modelData.Status + (modelData.cpu ? " | CPU: " + modelData.cpu + " | RAM: " + modelData.mem : "")
                                     pointSize: Style.fontSizeS
                                     color: Color.mOnSurfaceVariant
                                 }
