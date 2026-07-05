@@ -57,14 +57,20 @@ Item {
                             c.mem = st.MemUsage;
                         }
                         
+                        var displayPort = "";
                         var url = "";
                         if (c.Ports && c.Ports !== "") {
                             var m = c.Ports.match(/:(\d+)->/);
                             if (m && m[1]) {
                                 url = "http://" + hostname + ":" + m[1];
+                                displayPort = m[1];
+                            } else {
+                                var m2 = c.Ports.match(/(\d+)\//);
+                                if (m2 && m2[1]) displayPort = m2[1];
                             }
                         }
                         c.url = url;
+                        c.displayPort = displayPort;
                         
                         parsed.push(c);
                     } catch (e) {
@@ -193,7 +199,7 @@ Item {
                                 }
                                 NText {
                                     Layout.fillWidth: true
-                                    text: modelData.Status
+                                    text: modelData.Status + (modelData.displayPort ? " | Port: " + modelData.displayPort : "")
                                     pointSize: Style.fontSizeS
                                     color: Color.mOnSurfaceVariant
                                 }
@@ -316,7 +322,7 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                color: Color.mBackground
+                color: "#1e1e2e"
                 radius: Style.radiusM
                 clip: true
 
@@ -330,7 +336,7 @@ Item {
                         id: logsText
                         text: ""
                         readOnly: true
-                        color: Color.mOnSurface
+                        color: "#d4d4d4"
                         font.family: "monospace"
                         wrapMode: Text.WrapAnywhere
                         background: null
