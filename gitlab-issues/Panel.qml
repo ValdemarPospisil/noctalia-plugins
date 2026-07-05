@@ -156,8 +156,12 @@ Item {
                     clip: true
                     model: root.listModel
                     spacing: Style.marginM
-                    bottomPadding: Style.marginXXL
                     visible: !root.loading && root.listModel.length > 0
+                    
+                    footer: Item {
+                        width: cView.width
+                        height: Style.marginXXL
+                    }
                     
                     section.property: "category"
                     section.delegate: Rectangle {
