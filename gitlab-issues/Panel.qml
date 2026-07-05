@@ -153,15 +153,11 @@ Item {
                     id: cView
                     anchors.fill: parent
                     anchors.margins: Style.marginS
+                    anchors.bottomMargin: Style.marginXXL
                     clip: true
                     model: root.listModel
                     spacing: Style.marginM
                     visible: !root.loading && root.listModel.length > 0
-                    
-                    footer: Item {
-                        width: cView.width
-                        height: Style.marginXXL
-                    }
                     
                     section.property: "category"
                     section.delegate: Rectangle {
