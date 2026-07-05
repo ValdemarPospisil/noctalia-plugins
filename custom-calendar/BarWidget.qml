@@ -72,6 +72,11 @@ Item {
                             if (titleLower.indexOf("(office)") !== -1 || titleLower.indexOf("home office") !== -1 || titleLower === "doma") {
                                 continue;
                             }
+                            
+                            var showAllDay = pluginApi?.pluginSettings?.showAllDayEvents || false;
+                            if (!showAllDay) {
+                                continue;
+                            }
                         }
                         
                         if (startDate === todayDateStr) {

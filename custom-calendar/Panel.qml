@@ -16,8 +16,22 @@ Item {
 
     readonly property var geometryPlaceholder: panelContainer
 
+    property var allEventsList: []
     property var eventsList: []
     property bool loading: true
+
+    function applyFilter() {
+        var showAllDay = pluginApi?.pluginSettings?.showAllDayEvents || false;
+        var filtered = [];
+        for (var i = 0; i < allEventsList.length; i++) {
+            var ev = allEventsList[i];
+            if (ev.time === "Celý den" && !showAllDay) {
+                continue;
+            }
+            filtered.push(ev);
+        }
+        root.eventsList = filtered;
+    }
 
     anchors.fill: parent
 
@@ -54,7 +68,8 @@ Item {
                         }
                     }
                 }
-                root.eventsList = parsedEvents;
+                root.allEventsList = parsedEvents;
+                root.applyFilter();
                 root.loading = false;
             }
         }
@@ -76,41 +91,72 @@ Item {
 
             NBox {
                 Layout.fillWidth: true
-                implicitHeight: headerRow.implicitHeight + Style.margin2M
+                implicitHeight: headerColumn.implicitHeight + Style.margin2M
 
-                RowLayout {
-                    id: headerRow
+                ColumnLayout {
+                    id: headerColumn
                     anchors.fill: parent
                     anchors.margins: Style.marginM
                     spacing: Style.marginM
 
-                    NIcon {
-                        color: Color.mPrimary
-                        icon: "calendar-event"
-                        pointSize: Style.fontSizeXXL
-                    }
-                    ColumnLayout {
+                    RowLayout {
                         Layout.fillWidth: true
-                        NText {
+                        spacing: Style.marginM
+
+                        NIcon {
+                            color: Color.mPrimary
+                            icon: "calendar-event"
+                            pointSize: Style.fontSizeXXL
+                        }
+                        ColumnLayout {
                             Layout.fillWidth: true
-                            color: Color.mOnSurface
-                            font.weight: Style.fontWeightBold
-                            pointSize: Style.fontSizeL
-                            text: "Týdenní přehled schůzek"
+                            NText {
+                                Layout.fillWidth: true
+                                color: Color.mOnSurface
+                                font.weight: Style.fontWeightBold
+                                pointSize: Style.fontSizeL
+                                text: "Týdenní přehled schůzek"
+                            }
+                        }
+                        NIconButton {
+                            icon: "refresh"
+                            tooltipText: "Obnovit"
+                            onClicked: {
+                                root.loading = true;
+                                agendaProcess.running = true;
+                            }
+                        }
+                        NIconButton {
+                            icon: "close"
+                            tooltipText: "Zavřít"
+                            onClicked: pluginApi?.closePanel(pluginApi?.panelOpenScreen)
                         }
                     }
-                    NIconButton {
-                        icon: "refresh"
-                        tooltipText: "Obnovit"
-                        onClicked: {
-                            root.loading = true;
-                            agendaProcess.running = true;
-                        }
+
+                    NDivider {
+                        Layout.fillWidth: true
                     }
-                    NIconButton {
-                        icon: "close"
-                        tooltipText: "Zavřít"
-                        onClicked: pluginApi?.closePanel(pluginApi?.panelOpenScreen)
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Style.marginM
+
+                        NText {
+                            text: "Zobrazovat celodenní události"
+                            color: Color.mOnSurfaceVariant
+                            pointSize: Style.fontSizeS
+                            Layout.fillWidth: true
+                        }
+                        Switch {
+                            checked: pluginApi?.pluginSettings?.showAllDayEvents || false
+                            onCheckedChanged: {
+                                var s = pluginApi.pluginSettings || {};
+                                s.showAllDayEvents = checked;
+                                pluginApi.pluginSettings = s;
+                                pluginApi.saveSettings();
+                                root.applyFilter();
+                            }
+                        }
                     }
                 }
             }

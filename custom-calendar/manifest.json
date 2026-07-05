@@ -20,7 +20,8 @@
   },
   "metadata": {
     "defaultSettings": {
-      "disabledNotifications": {}
+      "disabledNotifications": {},
+      "showAllDayEvents": false
     }
   }
 }
