@@ -39,7 +39,7 @@ Item {
                             
                             if (startTime === "") {
                                 var titleLower = title.toLowerCase();
-                                if (titleLower.indexOf("(office)") !== -1 || titleLower.indexOf("home office") !== -1) {
+                                if (titleLower.indexOf("(office)") !== -1 || titleLower.indexOf("home office") !== -1 || titleLower === "doma") {
                                     continue;
                                 }
                             }
