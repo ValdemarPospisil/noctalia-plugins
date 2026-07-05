@@ -11,8 +11,8 @@ Item {
     id: root
 
     property var pluginApi: null
-    property real contentPreferredHeight: 500 * Style.uiScaleRatio
-    property real contentPreferredWidth: 440 * Style.uiScaleRatio
+    property real contentPreferredHeight: 700 * Style.uiScaleRatio
+    property real contentPreferredWidth: 550 * Style.uiScaleRatio
 
     readonly property var geometryPlaceholder: panelContainer
 
@@ -166,6 +166,8 @@ Item {
                             NIcon {
                                 icon: modelData.State === "running" ? "player-play" : "player-stop"
                                 color: modelData.State === "running" ? Color.mSuccess : Color.mOnSurfaceVariant
+                                Layout.alignment: Qt.AlignTop
+                                Layout.topMargin: Style.marginXS
                             }
 
                             ColumnLayout {
@@ -176,7 +178,7 @@ Item {
                                     Layout.fillWidth: true
                                     text: modelData.Names
                                     font.weight: Font.Bold
-                                    pointSize: Style.fontSizeM
+                                    pointSize: Style.fontSizeL
                                     color: modelData.url ? Color.mPrimary : Color.mOnSurface
                                     
                                     MouseArea {
@@ -191,21 +193,53 @@ Item {
                                 }
                                 NText {
                                     Layout.fillWidth: true
-                                    text: modelData.Status + (modelData.cpu ? " | CPU: " + modelData.cpu + " | RAM: " + modelData.mem : "")
+                                    text: modelData.Status
                                     pointSize: Style.fontSizeS
                                     color: Color.mOnSurfaceVariant
                                 }
+                                
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    visible: modelData.cpu !== undefined
+                                    spacing: Style.marginM
+                                    Layout.topMargin: Style.marginXS
+                                    
+                                    RowLayout {
+                                        spacing: Style.marginXXS
+                                        NIcon { icon: "cpu"; pointSize: Style.fontSizeS; color: Color.mOnSurfaceVariant }
+                                        NText { text: modelData.cpu || "0%"; pointSize: Style.fontSizeS; color: Color.mOnSurfaceVariant; font.weight: Font.Bold }
+                                    }
+                                    
+                                    RowLayout {
+                                        spacing: Style.marginXXS
+                                        NIcon { icon: "device-floppy"; pointSize: Style.fontSizeS; color: Color.mOnSurfaceVariant }
+                                        NText { text: modelData.mem || "0B"; pointSize: Style.fontSizeS; color: Color.mOnSurfaceVariant; font.weight: Font.Bold }
+                                    }
+                                }
                             }
 
-                            NIconButton {
-                                icon: modelData.State === "running" ? "player-pause" : "player-play"
-                                tooltipText: modelData.State === "running" ? "Zastavit" : "Spustit"
-                                onClicked: {
-                                    root.loading = true;
-                                    var action = modelData.State === "running" ? "stop" : "start";
-                                    actionProcess.action = action;
-                                    actionProcess.containerName = modelData.Names;
-                                    actionProcess.running = true;
+                            ColumnLayout {
+                                Layout.alignment: Qt.AlignTop
+                                spacing: Style.marginXXS
+                                
+                                NIconButton {
+                                    icon: modelData.State === "running" ? "player-pause" : "player-play"
+                                    tooltipText: modelData.State === "running" ? "Zastavit" : "Spustit"
+                                    onClicked: {
+                                        root.loading = true;
+                                        var action = modelData.State === "running" ? "stop" : "start";
+                                        actionProcess.action = action;
+                                        actionProcess.containerName = modelData.Names;
+                                        actionProcess.running = true;
+                                    }
+                                }
+                                
+                                NIconButton {
+                                    icon: "file-text"
+                                    tooltipText: "Zobrazit logy"
+                                    onClicked: {
+                                        logsOverlay.showLogs(modelData.Names);
+                                    }
                                 }
                             }
                         }
@@ -231,6 +265,97 @@ Item {
         }
     }
 
+    Rectangle {
+        id: logsOverlay
+        anchors.fill: parent
+        color: Color.mSurface
+        radius: Style.radiusL
+        visible: false
+        z: 100
+        
+        property string containerName: ""
+        
+        function showLogs(name) {
+            containerName = name;
+            logsText.text = "Načítám logy...\n";
+            visible = true;
+            logsProcess.command = ["ssh", root.host, "docker", "logs", "--tail", "100", name];
+            logsProcess.running = true;
+        }
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: Style.marginL
+            spacing: Style.marginM
+            
+            RowLayout {
+                Layout.fillWidth: true
+                NIcon {
+                    icon: "file-text"
+                    color: Color.mPrimary
+                    pointSize: Style.fontSizeL
+                }
+                NText {
+                    text: "Logy: " + logsOverlay.containerName
+                    font.weight: Font.Bold
+                    pointSize: Style.fontSizeL
+                    Layout.fillWidth: true
+                    color: Color.mOnSurface
+                }
+                NIconButton {
+                    icon: "close"
+                    onClicked: {
+                        logsProcess.running = false;
+                        logsOverlay.visible = false;
+                    }
+                }
+            }
+            
+            NDivider { Layout.fillWidth: true }
+            
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                color: Color.mBackground
+                radius: Style.radiusM
+                clip: true
+
+                ScrollView {
+                    id: logsScroll
+                    anchors.fill: parent
+                    anchors.margins: Style.marginS
+                    contentWidth: availableWidth
+                    
+                    TextArea {
+                        id: logsText
+                        text: ""
+                        readOnly: true
+                        color: Color.mOnSurface
+                        font.family: "monospace"
+                        wrapMode: Text.WrapAnywhere
+                        background: null
+                    }
+                }
+            }
+        }
+    }
+
+    Process {
+        id: logsProcess
+        stdout: StdioCollector {
+            onStreamFinished: {
+                logsText.text = this.text;
+            }
+        }
+        stderr: StdioCollector {
+            onStreamFinished: {
+                if (this.text.trim() !== "") {
+                    logsText.text += "\n" + this.text;
+                }
+            }
+        }
+    }
+
     Process {
         id: actionProcess
         property string action: "restart"
@@ -238,7 +363,6 @@ Item {
         command: ["ssh", root.host, "docker", action, containerName]
         onRunningChanged: {
             if (!running) {
-                // Po dokončení akce aktualizujeme seznam
                 psProcess.running = true;
             }
         }
