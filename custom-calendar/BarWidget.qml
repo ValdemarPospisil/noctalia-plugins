@@ -108,17 +108,22 @@ Item {
                             
                             var eventId = title + startDate + startTime;
                             
-                            if (minutesLeft >= 9 && minutesLeft <= 10) {
-                                if (!root.notifiedEvents[eventId + "_10"]) {
-                                    sendNotification("Meeting za 10 minut!", title + " začíná v " + startTime);
-                                    root.notifiedEvents[eventId + "_10"] = true;
-                                }
-                            }
+                            var disabledMap = pluginApi?.pluginSettings?.disabledNotifications || {};
+                            var isDisabled = disabledMap[eventId];
                             
-                            if (minutesLeft >= 0 && minutesLeft <= 1) {
-                                if (!root.notifiedEvents[eventId + "_1"]) {
-                                    sendNotification("Meeting začíná!", title + " právě začíná.");
-                                    root.notifiedEvents[eventId + "_1"] = true;
+                            if (!isDisabled) {
+                                if (minutesLeft >= 9 && minutesLeft <= 10) {
+                                    if (!root.notifiedEvents[eventId + "_10"]) {
+                                        sendNotification("Meeting za 10 minut!", title + " začíná v " + startTime);
+                                        root.notifiedEvents[eventId + "_10"] = true;
+                                    }
+                                }
+                                
+                                if (minutesLeft >= 0 && minutesLeft <= 1) {
+                                    if (!root.notifiedEvents[eventId + "_1"]) {
+                                        sendNotification("Meeting začíná!", title + " právě začíná.");
+                                        root.notifiedEvents[eventId + "_1"] = true;
+                                    }
                                 }
                             }
                             
@@ -161,5 +166,11 @@ Item {
         tooltipText: root.widgetTooltip
         screen: root.screen
         oppositeDirection: BarService.getPillDirection(root)
+
+        onClicked: {
+            if (pluginApi) {
+                pluginApi.openPanel(root.screen, this);
+            }
+        }
     }
 }

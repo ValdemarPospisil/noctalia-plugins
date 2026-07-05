@@ -8,12 +8,19 @@
   "description": "Vlastní kalendářový widget propojený s gcalcli.",
   "tags": [
     "Bar",
-    "Productivity"
+    "Productivity",
+    "Panel"
   ],
   "entryPoints": {
-    "barWidget": "BarWidget.qml"
+    "barWidget": "BarWidget.qml",
+    "panel": "Panel.qml"
   },
   "dependencies": {
     "plugins": []
+  },
+  "metadata": {
+    "defaultSettings": {
+      "disabledNotifications": {}
+    }
   }
 }
