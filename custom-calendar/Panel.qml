@@ -36,6 +36,14 @@ Item {
                             var startDate = parts[0].trim();
                             var startTime = parts[1].trim();
                             var title = parts[4].trim();
+                            
+                            if (startTime === "") {
+                                var titleLower = title.toLowerCase();
+                                if (titleLower.indexOf("(office)") !== -1 || titleLower.indexOf("home office") !== -1) {
+                                    continue;
+                                }
+                            }
+                            
                             var eventId = title + startDate + startTime;
                             parsedEvents.push({
                                 "date": startDate,

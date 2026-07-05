@@ -67,6 +67,13 @@ Item {
                         var endDate = parts[2].trim();
                         var title = parts[4].trim();
                         
+                        if (startTime === "") {
+                            var titleLower = title.toLowerCase();
+                            if (titleLower.indexOf("(office)") !== -1 || titleLower.indexOf("home office") !== -1) {
+                                continue;
+                            }
+                        }
+                        
                         if (startDate === todayDateStr) {
                             if (startTime === "") {
                                 tooltipLines.push("📅 Celý den: " + title);
