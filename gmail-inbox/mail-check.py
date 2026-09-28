@@ -6,6 +6,7 @@ Usage:
       config: {"defaultQuery": str, "accountQueries": {email: str}, "maxMessages": int}
       prints {"accounts": [{"email", "count", "messages": [...], "error"}]}
   mail-check.py mark-read <email> <uid>
+  mail-check.py mark-all-read <email> <gmail query>
 """
 import email.header
 import email.utils
@@ -64,6 +65,11 @@ def parse_message(meta, header_bytes, address):
     }
 
 
+def search(conn, query):
+    _, data = conn.uid("SEARCH", "X-GM-RAW", '"' + query.replace('"', '\\"') + '"')
+    return data[0].split()
+
+
 def fetch_account(obj, mail, config):
     address = mail.props.email_address
     query = config.get("accountQueries", {}).get(address) or config.get("defaultQuery") or "is:unread in:inbox"
@@ -72,8 +78,7 @@ def fetch_account(obj, mail, config):
         conn = connect(obj, mail)
         try:
             conn.select("INBOX", readonly=True)
-            _, data = conn.uid("SEARCH", "X-GM-RAW", '"' + query.replace('"', '\\"') + '"')
-            uids = data[0].split()
+            uids = search(conn, query)
             result["count"] = len(uids)
             latest = uids[-int(config.get("maxMessages", 20)):]
             if latest:
@@ -99,13 +104,17 @@ def fetch(config):
     print(json.dumps({"accounts": results}, ensure_ascii=False))
 
 
-def mark_read(address, uid):
+def mark_read(address, uid=None, query=None):
+    """Mark one message (by UID) or every INBOX message matching a Gmail query as read."""
     for obj, mail in google_accounts():
         if mail.props.email_address == address:
             conn = connect(obj, mail)
             try:
                 conn.select("INBOX")
-                conn.uid("STORE", str(uid), "+FLAGS", "(\\Seen)")
+                uids = search(conn, query) if query else [str(uid).encode()]
+                for i in range(0, len(uids), 500):
+                    conn.uid("STORE", b",".join(uids[i:i + 500]), "+FLAGS", "(\\Seen)")
+                print(len(uids))
             finally:
                 conn.logout()
             return
@@ -116,6 +125,8 @@ if __name__ == "__main__":
     if len(sys.argv) >= 2 and sys.argv[1] == "fetch":
         fetch(json.loads(sys.argv[2]) if len(sys.argv) > 2 else {})
     elif len(sys.argv) == 4 and sys.argv[1] == "mark-read":
-        mark_read(sys.argv[2], int(sys.argv[3]))
+        mark_read(sys.argv[2], uid=int(sys.argv[3]))
+    elif len(sys.argv) == 4 and sys.argv[1] == "mark-all-read":
+        mark_read(sys.argv[2], query=sys.argv[3])
     else:
         sys.exit(__doc__)

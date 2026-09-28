@@ -137,6 +137,29 @@ Item {
                         elide: Text.ElideRight
                     }
                     NIconButton {
+                        id: markAllButton
+                        property bool confirming: false
+                        visible: root.listModel.length > 0
+                        icon: confirming ? "alert-triangle" : "checks"
+                        colorFg: confirming ? Color.mError : Color.mPrimary
+                        tooltipText: confirming ? "Klikni znovu: označit všech " + root.currentAccount.count + " jako přečtené" : "Označit vše jako přečtené"
+                        onClicked: {
+                            if (!confirming) {
+                                confirming = true;
+                                confirmTimer.restart();
+                                return;
+                            }
+                            confirming = false;
+                            root.mainInstance?.markAllRead(root.currentAccount.email);
+                        }
+
+                        Timer {
+                            id: confirmTimer
+                            interval: 3000
+                            onTriggered: markAllButton.confirming = false
+                        }
+                    }
+                    NIconButton {
                         icon: "external-link"
                         tooltipText: "Otevřít schránku v Gmailu"
                         onClicked: root.openUrl("https://mail.google.com/mail/u/" + root.currentAccount.email + "/")

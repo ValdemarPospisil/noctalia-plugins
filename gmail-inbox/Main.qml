@@ -56,6 +56,20 @@ Item {
         Quickshell.execDetached(["python3", root.script, "mark-read", address, String(uid)]);
     }
 
+    function queryFor(address) {
+        return (setting("accountQueries") || {})[address] || setting("defaultQuery");
+    }
+
+    function markAllRead(address) {
+        if (markAllProcess.running)
+            return;
+        setAccounts(accounts.map(function (a) {
+            return a.email === address ? Object.assign({}, a, { "messages": [], "count": 0 }) : a;
+        }));
+        markAllProcess.command = ["python3", root.script, "mark-all-read", address, queryFor(address)];
+        markAllProcess.running = true;
+    }
+
     function setAccounts(list) {
         var total = 0;
         for (var i = 0; i < list.length; i++)
@@ -122,6 +136,17 @@ Item {
                     root.error = this.text.trim().split("\n").pop();
                     Logger.e("GmailInbox", this.text.trim());
                 }
+            }
+        }
+    }
+
+    Process {
+        id: markAllProcess
+        onRunningChanged: if (!running) root.refresh()
+        stderr: StdioCollector {
+            onStreamFinished: {
+                if (this.text.trim() !== "")
+                    Logger.e("GmailInbox", "mark-all-read: " + this.text.trim());
             }
         }
     }
