@@ -4,7 +4,6 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import qs.Commons
-import qs.Services.Location
 import qs.Services.UI
 import qs.Widgets
 
@@ -19,13 +18,13 @@ Item {
 
     property var eventsList: []
     readonly property var utils: pluginApi?.mainInstance || null
-    property bool loading: CalendarService.loading && CalendarService.events.length === 0
+    property bool loading: (utils?.loading ?? true) && (utils?.events?.length ?? 0) === 0
 
     function applyFilter() {
         if (!utils)
             return;
         var showAllDay = pluginApi?.pluginSettings?.showAllDayEvents || false;
-        var events = utils.upcoming(CalendarService.events, 7, showAllDay);
+        var events = utils.upcoming(utils.events, 7, showAllDay);
         var list = [];
         for (var i = 0; i < events.length; i++) {
             var ev = events[i];
@@ -45,7 +44,7 @@ Item {
     anchors.fill: parent
 
     Connections {
-        target: CalendarService
+        target: root.utils
         function onEventsChanged() { root.applyFilter(); }
     }
 
@@ -94,7 +93,7 @@ Item {
                         NIconButton {
                             icon: "refresh"
                             tooltipText: "Obnovit"
-                            onClicked: CalendarService.loadEvents()
+                            onClicked: root.utils?.loadEvents()
                         }
                         NIconButton {
                             icon: "close"
@@ -212,20 +211,19 @@ Item {
                         }
                     }
 
-                    ScrollBar.vertical: ScrollBar {}
                 }
 
                 NText {
                     anchors.centerIn: parent
                     text: "Načítám kalendář..."
-                    visible: root.loading && CalendarService.available
+                    visible: root.loading
                     color: Color.mOnSurfaceVariant
                 }
 
                 NText {
                     anchors.centerIn: parent
                     text: "Žádné schůzky na nejbližší týden"
-                    visible: CalendarService.available && !root.loading && root.eventsList.length === 0
+                    visible: (root.utils?.available ?? false) && !root.loading && root.eventsList.length === 0
                     color: Color.mOnSurfaceVariant
                 }
 
@@ -234,8 +232,8 @@ Item {
                     width: parent.width - Style.margin2L
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.Wrap
-                    text: "Kalendář není dostupný.\nNainstaluj evolution-data-server a přidej Google účet v GNOME Online Accounts." + (CalendarService.lastError ? "\n\n" + CalendarService.lastError : "")
-                    visible: !CalendarService.available
+                    text: "Kalendář není dostupný.\nZkontroluj, že máš v GNOME Online Accounts Google účet se zapnutým kalendářem." + (root.utils?.lastError ? "\n\n" + root.utils.lastError : "")
+                    visible: !root.loading && !(root.utils?.available ?? false)
                     color: Color.mOnSurfaceVariant
                 }
             }

@@ -2,7 +2,6 @@ import Quickshell
 import Quickshell.Io
 import qs.Commons
 import qs.Modules.Bar.Extras
-import qs.Services.Location
 import qs.Services.UI
 import qs.Widgets
 import QtQuick
@@ -42,14 +41,16 @@ Item {
     function update() {
         if (!utils)
             return;
-        if (!CalendarService.available) {
+        if (!utils.available) {
+            if (utils.loading)
+                return;
             root.widgetText = "Kalendář nedostupný";
-            root.widgetTooltip = CalendarService.lastError || "Nainstaluj evolution-data-server a přidej Google účet v GNOME Online Accounts";
+            root.widgetTooltip = utils.lastError || "Kalendář není dostupný";
             return;
         }
 
         var showAllDay = pluginApi?.pluginSettings?.showAllDayEvents || false;
-        var events = utils.upcoming(CalendarService.events, 7, showAllDay);
+        var events = utils.upcoming(utils.events, 7, showAllDay);
         var nowSec = Date.now() / 1000;
         var endOfToday = new Date();
         endOfToday.setHours(23, 59, 59, 999);
@@ -98,9 +99,10 @@ Item {
     }
 
     Connections {
-        target: CalendarService
+        target: root.utils
         function onEventsChanged() { root.update(); }
         function onAvailableChanged() { root.update(); }
+        function onLoadingChanged() { root.update(); }
     }
 
     // CalendarService refreshes events itself; this only keeps the countdown current

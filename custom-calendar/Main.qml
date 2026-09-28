@@ -1,12 +1,66 @@
 import QtQuick
+import Quickshell
+import Quickshell.Io
+import qs.Commons
 
-// Shared helpers for BarWidget and Panel, reached via pluginApi.mainInstance.
-// Kept here instead of a .js import: Qt refuses relative script imports from
-// plugin dirs like "13758e:custom-calendar" (File name case mismatch).
+// Loads events and holds shared helpers for BarWidget and Panel (via pluginApi.mainInstance).
 Item {
     id: root
 
     property var pluginApi: null
+
+    property var events: []
+    property bool available: false
+    property bool loading: false
+    property string lastError: ""
+
+    readonly property string noctaliaEventsScript: Quickshell.shellDir + "/Scripts/python/src/calendar/calendar-events.py"
+
+    function loadEvents() {
+        if (eventsProcess.running || !pluginApi)
+            return;
+        var now = Math.floor(Date.now() / 1000);
+        root.loading = true;
+        eventsProcess.command = ["python3", pluginApi.pluginDir + "/calendar-events.py", root.noctaliaEventsScript,
+                                 String(now - 86400), String(now + 8 * 86400)];
+        eventsProcess.running = true;
+    }
+
+    Process {
+        id: eventsProcess
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root.loading = false;
+                try {
+                    root.events = JSON.parse(this.text.trim());
+                    root.available = true;
+                    root.lastError = "";
+                } catch (e) {
+                    root.available = false;
+                    Logger.e("CustomCalendar", "Failed to parse events: " + e);
+                }
+            }
+        }
+        stderr: StdioCollector {
+            onStreamFinished: {
+                // The Noctalia script logs progress to stderr, only the last traceback line matters
+                var lines = this.text.trim().split("\n");
+                var last = lines[lines.length - 1];
+                if (last.indexOf("Error") !== -1)
+                    root.lastError = last;
+            }
+        }
+    }
+
+    Timer {
+        interval: 300000
+        running: true
+        repeat: true
+        onTriggered: root.loadEvents()
+    }
+
+    onPluginApiChanged: root.loadEvents()
+    Component.onCompleted: root.loadEvents()
 
     // Events come from Noctalia's CalendarService (Evolution Data Server / khal):
     // { summary, calendar, start, end, location, description, uid } with start/end in unix seconds.

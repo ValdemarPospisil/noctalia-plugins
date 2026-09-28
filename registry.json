@@ -4,7 +4,7 @@
     {
       "id": "custom-calendar",
       "name": "Můj Kalendář",
-      "version": "2.0.1",
+      "version": "2.1.0",
       "author": "Valdemar",
       "description": "Nejbližší schůzky na liště s upozorněním. Bere události z kalendáře Noctalie (Evolution Data Server / khal).",
       "minNoctaliaVersion": "4.6.6",
@@ -16,12 +16,12 @@
       ],
       "official": false,
       "repository": "https://github.com/ValdemarPospisil/noctalia-plugins",
-      "lastUpdated": "2026-09-28T12:32:21+02:00"
+      "lastUpdated": "2026-09-28T12:55:04+02:00"
     },
     {
       "id": "gitlab-issues",
       "name": "GitLab Úkoly",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "author": "Valdemar",
       "description": "GitLab Issues and MRs assigned to me",
       "minNoctaliaVersion": "4.6.6",
@@ -38,7 +38,7 @@
     {
       "id": "gmail-inbox",
       "name": "Gmail",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": "Valdemar",
       "description": "Nepřečtené e-maily ze všech Google účtů v GNOME Online Accounts, s notifikacemi o nových zprávách.",
       "minNoctaliaVersion": "4.6.6",
@@ -55,7 +55,7 @@
     {
       "id": "remote-docker",
       "name": "Domácí Server",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "author": "Valdemar",
       "description": "Správa Docker kontejnerů na vzdáleném serveru",
       "minNoctaliaVersion": "4.6.6",

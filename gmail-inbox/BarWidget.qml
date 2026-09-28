@@ -23,7 +23,7 @@ Item {
         if (accounts.length === 0)
             return "Načítám...";
         return accounts.map(function (a) {
-            return a.email + ": " + (a.error ? "chyba" : a.count);
+            return mainInstance.accountLabel(a.email) + ": " + (a.error ? "chyba" : a.count) + "  (" + a.email + ")";
         }).join("\n");
     }
 

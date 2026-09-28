@@ -21,6 +21,10 @@ Item {
     property var knownIds: ({})
     property bool initialized: false
 
+    function accountLabel(address) {
+        return /@(gmail|googlemail)\.com$/.test(address) ? "Osobní" : "Pracovní";
+    }
+
     function setting(key) {
         return settings[key] !== undefined ? settings[key] : defaults[key];
     }
@@ -99,6 +103,10 @@ Item {
                 root.loading = false;
                 try {
                     var list = JSON.parse(this.text.trim()).accounts || [];
+                    // Work accounts first
+                    list.sort(function (a, b) {
+                        return (root.accountLabel(a.email) === "Osobní") - (root.accountLabel(b.email) === "Osobní");
+                    });
                     root.error = list.length === 0 ? "V GNOME Online Accounts není žádný Google účet se zapnutým mailem" : "";
                     root.setAccounts(list);
                     root.handleNewMessages(list);

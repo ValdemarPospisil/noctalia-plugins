@@ -250,7 +250,6 @@ Item {
                         }
                     }
 
-                    ScrollBar.vertical: ScrollBar {}
                 }
 
                 NText {

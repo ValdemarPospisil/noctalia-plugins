@@ -19,16 +19,13 @@ Item {
     readonly property var accounts: mainInstance?.accounts || []
     readonly property bool loading: (mainInstance?.loading ?? true) && accounts.length === 0
 
-    // Flat list with an "account" key so NListView can group by it
+    property int currentTab: 0
+    readonly property var currentAccount: accounts.length > 0 ? accounts[Math.min(currentTab, accounts.length - 1)] : null
     readonly property var listModel: {
-        var list = [];
-        for (var i = 0; i < accounts.length; i++) {
-            var acc = accounts[i];
-            var header = acc.email + (acc.error ? "  (chyba)" : "  (" + acc.count + ")");
-            for (var j = 0; j < acc.messages.length; j++)
-                list.push(Object.assign({ "account": header, "email": acc.email }, acc.messages[j]));
-        }
-        return list;
+        if (!currentAccount)
+            return [];
+        var email = currentAccount.email;
+        return currentAccount.messages.map(function (m) { return Object.assign({ "email": email }, m); });
     }
 
     function relativeTime(ts) {
@@ -100,37 +97,64 @@ Item {
                 }
             }
 
+            NTabBar {
+                id: tabBar
+                Layout.fillWidth: true
+                visible: root.accounts.length > 1
+                distributeEvenly: true
+                currentIndex: root.currentTab
+                onCurrentIndexChanged: root.currentTab = currentIndex
+
+                Repeater {
+                    model: root.accounts
+                    NTabButton {
+                        text: root.mainInstance.accountLabel(modelData.email) + (modelData.error ? " (!)" : " (" + modelData.count + ")")
+                        tooltipText: modelData.email
+                        tabIndex: index
+                        checked: tabBar.currentIndex === index
+                        onClicked: tabBar.currentIndex = index
+                    }
+                }
+            }
+
             NBox {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
 
+                RowLayout {
+                    id: accountRow
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.margins: Style.marginM
+                    visible: root.currentAccount !== null
+
+                    NText {
+                        Layout.fillWidth: true
+                        text: root.currentAccount ? root.currentAccount.email : ""
+                        color: Color.mOnSurfaceVariant
+                        pointSize: Style.fontSizeS
+                        elide: Text.ElideRight
+                    }
+                    NIconButton {
+                        icon: "external-link"
+                        tooltipText: "Otevřít schránku v Gmailu"
+                        onClicked: root.openUrl("https://mail.google.com/mail/u/" + root.currentAccount.email + "/")
+                    }
+                }
+
                 NListView {
                     id: listView
-                    anchors.fill: parent
+                    anchors.top: accountRow.bottom
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
                     anchors.margins: Style.marginS
                     anchors.bottomMargin: Style.marginXXL
                     clip: true
                     model: root.listModel
                     spacing: Style.marginM
                     visible: !root.loading && root.listModel.length > 0
-
-                    section.property: "account"
-                    section.delegate: RowLayout {
-                        width: ListView.view.width
-                        NText {
-                            Layout.fillWidth: true
-                            text: section
-                            font.weight: Font.Bold
-                            color: Color.mPrimary
-                            pointSize: Style.fontSizeM
-                            elide: Text.ElideRight
-                        }
-                        NIconButton {
-                            icon: "external-link"
-                            tooltipText: "Otevřít schránku v Gmailu"
-                            onClicked: root.openUrl("https://mail.google.com/mail/u/" + section.split("  ")[0] + "/")
-                        }
-                    }
 
                     delegate: Rectangle {
                         width: ListView.view.width
@@ -192,7 +216,6 @@ Item {
                         }
                     }
 
-                    ScrollBar.vertical: ScrollBar {}
                 }
 
                 NText {
@@ -207,7 +230,7 @@ Item {
                     width: parent.width - Style.margin2L
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.Wrap
-                    text: root.mainInstance?.error || "Žádné nepřečtené e-maily 🎉"
+                    text: root.currentAccount?.error ? "Chyba účtu: " + root.currentAccount.error : (root.mainInstance?.error || "Žádné nepřečtené e-maily 🎉")
                     visible: !root.loading && root.listModel.length === 0
                     color: Color.mOnSurfaceVariant
                 }
