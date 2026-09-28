@@ -16,7 +16,7 @@
       ],
       "official": false,
       "repository": "https://github.com/ValdemarPospisil/noctalia-plugins",
-      "lastUpdated": "2026-09-28T12:11:06+02:00"
+      "lastUpdated": "2026-09-28T12:32:21+02:00"
     },
     {
       "id": "gitlab-issues",
@@ -34,6 +34,23 @@
       "official": false,
       "repository": "https://github.com/ValdemarPospisil/noctalia-plugins",
       "lastUpdated": "2026-09-28T12:25:14+02:00"
+    },
+    {
+      "id": "gmail-inbox",
+      "name": "Gmail",
+      "version": "1.0.0",
+      "author": "Valdemar",
+      "description": "Nepřečtené e-maily ze všech Google účtů v GNOME Online Accounts, s notifikacemi o nových zprávách.",
+      "minNoctaliaVersion": "4.6.6",
+      "license": "MIT",
+      "tags": [
+        "Bar",
+        "Panel",
+        "Productivity"
+      ],
+      "official": false,
+      "repository": "https://github.com/ValdemarPospisil/noctalia-plugins",
+      "lastUpdated": "2026-09-28T12:50:15+02:00"
     },
     {
       "id": "remote-docker",

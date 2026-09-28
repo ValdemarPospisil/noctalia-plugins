@@ -1,0 +1,33 @@
+{
+  "id": "gmail-inbox",
+  "name": "Gmail",
+  "version": "1.0.0",
+  "minNoctaliaVersion": "4.6.6",
+  "author": "Valdemar",
+  "license": "MIT",
+  "repository": "https://github.com/ValdemarPospisil/noctalia-plugins",
+  "description": "Nepřečtené e-maily ze všech Google účtů v GNOME Online Accounts, s notifikacemi o nových zprávách.",
+  "tags": [
+    "Bar",
+    "Panel",
+    "Productivity"
+  ],
+  "entryPoints": {
+    "main": "Main.qml",
+    "barWidget": "BarWidget.qml",
+    "panel": "Panel.qml",
+    "settings": "Settings.qml"
+  },
+  "dependencies": {
+    "plugins": []
+  },
+  "metadata": {
+    "defaultSettings": {
+      "refreshInterval": 60,
+      "notifications": true,
+      "defaultQuery": "is:unread in:inbox newer_than:7d",
+      "accountQueries": {},
+      "maxMessages": 20
+    }
+  }
+}
