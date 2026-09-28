@@ -178,7 +178,18 @@ Item {
                         width: ListView.view.width
                         height: delegateLayout.implicitHeight + Style.margin2M
                         radius: Style.radiusM
-                        color: Color.mSurface
+                        color: rowMouse.containsMouse ? Color.mHover : Color.mSurface
+
+                        MouseArea {
+                            id: rowMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                Qt.openUrlExternally(modelData.url);
+                                pluginApi?.closePanel(pluginApi?.panelOpenScreen);
+                            }
+                        }
 
                         RowLayout {
                             id: delegateLayout
@@ -203,12 +214,6 @@ Item {
                                     pointSize: Style.fontSizeM
                                     color: Color.mOnSurface
                                     wrapMode: Text.Wrap
-                                    
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: pluginApi?.openUrl(modelData.url)
-                                    }
                                 }
                                 NText {
                                     Layout.fillWidth: true
@@ -268,6 +273,6 @@ Item {
     Process {
         id: copyProcess
         property string textToCopy: ""
-        command: ["sh", "-c", "echo -n '" + textToCopy + "' | wl-copy"]
+        command: ["wl-copy", "--", textToCopy]
     }
 }

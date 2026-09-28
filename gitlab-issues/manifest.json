@@ -1,7 +1,7 @@
 {
   "id": "gitlab-issues",
   "name": "GitLab Úkoly",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "minNoctaliaVersion": "4.6.6",
   "author": "Valdemar",
   "description": "GitLab Issues and MRs assigned to me",

@@ -19,6 +19,23 @@ Item {
     property string host: pluginApi?.pluginSettings?.remoteHost || "valdemar@void"
     property var containers: []
     property bool loading: true
+    property var server: null
+
+    function formatBytes(kb) {
+        var gb = kb / 1048576;
+        return gb >= 100 ? Math.round(gb) + " GB" : gb.toFixed(1) + " GB";
+    }
+
+    function formatUptime(seconds) {
+        var d = Math.floor(seconds / 86400);
+        var h = Math.floor((seconds % 86400) / 3600);
+        var m = Math.floor((seconds % 3600) / 60);
+        return d > 0 ? d + "d " + h + "h" : h + "h " + m + "m";
+    }
+
+    function gaugeColor(ratio) {
+        return ratio >= 0.9 ? Color.mError : ratio >= 0.75 ? Color.mTertiary : Color.mPrimary;
+    }
 
     anchors.fill: parent
 
@@ -83,8 +100,58 @@ Item {
         }
     }
 
+    // Reads everything from /proc and df so the server needs no extra tools
+    Process {
+        id: statsProcess
+        command: ["ssh", "-o", "ConnectTimeout=2", root.host, [
+            "echo CORES=$(nproc)",
+            "set -- $(head -1 /proc/stat); a=$(($2+$3+$4+$5+$6+$7+$8)); ai=$(($5+$6))",
+            "sleep 0.5",
+            "set -- $(head -1 /proc/stat); b=$(($2+$3+$4+$5+$6+$7+$8)); bi=$(($5+$6))",
+            "echo CPU=$((100*((b-a)-(bi-ai))/(b-a)))",
+            "echo LOAD=$(cut -d' ' -f1-3 /proc/loadavg)",
+            "awk '/MemTotal/{t=$2} /MemAvailable/{a=$2} END{print \"MEM=\" t-a \" \" t}' /proc/meminfo",
+            "df -kP / | awk 'NR==2{print \"DISK=\" $3 \" \" $2}'",
+            "echo UP=$(cut -d. -f1 /proc/uptime)",
+            "for z in /sys/class/thermal/thermal_zone*/temp; do [ -r \"$z\" ] && echo TEMP=$(($(cat $z)/1000)) && break; done"
+        ].join("; ")]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var info = {};
+                var lines = this.text.trim().split('\n');
+                for (var i = 0; i < lines.length; i++) {
+                    var idx = lines[i].indexOf("=");
+                    if (idx > 0) info[lines[i].substring(0, idx)] = lines[i].substring(idx + 1).trim().split(" ");
+                }
+                if (!info.CPU) {
+                    root.server = null;
+                    return;
+                }
+                root.server = {
+                    cores: parseInt(info.CORES[0]),
+                    cpu: parseInt(info.CPU[0]) / 100,
+                    load: info.LOAD ? info.LOAD.join(" ") : "",
+                    memUsed: parseInt(info.MEM[0]),
+                    memTotal: parseInt(info.MEM[1]),
+                    diskUsed: parseInt(info.DISK[0]),
+                    diskTotal: parseInt(info.DISK[1]),
+                    uptime: parseInt(info.UP[0]),
+                    temp: info.TEMP ? parseInt(info.TEMP[0]) : -1
+                };
+            }
+        }
+    }
+
+    Timer {
+        interval: 5000
+        running: true
+        repeat: true
+        onTriggered: if (!statsProcess.running) statsProcess.running = true
+    }
+
     Component.onCompleted: {
         psProcess.running = true;
+        statsProcess.running = true;
     }
 
     Rectangle {
@@ -134,12 +201,74 @@ Item {
                         onClicked: {
                             root.loading = true;
                             psProcess.running = true;
+                            statsProcess.running = true;
                         }
                     }
                     NIconButton {
                         icon: "close"
                         tooltipText: "Zavřít"
                         onClicked: pluginApi?.closePanel(pluginApi?.panelOpenScreen)
+                    }
+                }
+            }
+
+            NBox {
+                Layout.fillWidth: true
+                implicitHeight: serverColumn.implicitHeight + Style.margin2M
+                visible: root.server !== null
+
+                ColumnLayout {
+                    id: serverColumn
+                    anchors.fill: parent
+                    anchors.margins: Style.marginM
+                    spacing: Style.marginS
+
+                    Repeater {
+                        model: root.server ? [
+                            { icon: "cpu", label: "CPU", ratio: root.server.cpu, value: Math.round(root.server.cpu * 100) + " % (" + root.server.cores + " jader)" },
+                            { icon: "device-desktop-analytics", label: "RAM", ratio: root.server.memUsed / root.server.memTotal, value: root.formatBytes(root.server.memUsed) + " / " + root.formatBytes(root.server.memTotal) },
+                            { icon: "database", label: "Disk", ratio: root.server.diskUsed / root.server.diskTotal, value: root.formatBytes(root.server.diskUsed) + " / " + root.formatBytes(root.server.diskTotal) }
+                        ] : []
+
+                        delegate: RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Style.marginM
+
+                            NIcon {
+                                icon: modelData.icon
+                                color: Color.mOnSurfaceVariant
+                                pointSize: Style.fontSizeM
+                            }
+                            NText {
+                                text: modelData.label
+                                color: Color.mOnSurface
+                                font.weight: Font.Bold
+                                pointSize: Style.fontSizeS
+                                Layout.preferredWidth: 40 * Style.uiScaleRatio
+                            }
+                            NLinearGauge {
+                                orientation: Qt.Horizontal
+                                ratio: modelData.ratio
+                                fillColor: root.gaugeColor(modelData.ratio)
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 6 * Style.uiScaleRatio
+                            }
+                            NText {
+                                text: modelData.value
+                                color: Color.mOnSurfaceVariant
+                                pointSize: Style.fontSizeS
+                                horizontalAlignment: Text.AlignRight
+                                Layout.preferredWidth: 140 * Style.uiScaleRatio
+                            }
+                        }
+                    }
+
+                    NText {
+                        Layout.fillWidth: true
+                        visible: root.server !== null
+                        text: root.server ? "Uptime " + root.formatUptime(root.server.uptime) + "  |  Load " + root.server.load + (root.server.temp >= 0 ? "  |  " + root.server.temp + " °C" : "") : ""
+                        color: Color.mOnSurfaceVariant
+                        pointSize: Style.fontSizeXS
                     }
                 }
             }
@@ -192,7 +321,8 @@ Item {
                                         cursorShape: modelData.url ? Qt.PointingHandCursor : Qt.ArrowCursor
                                         onClicked: {
                                             if (modelData.url) {
-                                                pluginApi?.openUrl(modelData.url);
+                                                Qt.openUrlExternally(modelData.url);
+                                                pluginApi?.closePanel(pluginApi?.panelOpenScreen);
                                             }
                                         }
                                     }
