@@ -1,11 +1,11 @@
 {
   "id": "custom-calendar",
   "name": "Můj Kalendář",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "minNoctaliaVersion": "4.6.6",
   "author": "Valdemar",
   "license": "MIT",
-  "description": "Vlastní kalendářový widget propojený s gcalcli.",
+  "description": "Nejbližší schůzky na liště s upozorněním. Bere události z kalendáře Noctalie (Evolution Data Server / khal).",
   "tags": [
     "Bar",
     "Productivity",

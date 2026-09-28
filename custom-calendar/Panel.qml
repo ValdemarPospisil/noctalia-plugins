@@ -4,8 +4,10 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import qs.Commons
+import qs.Services.Location
 import qs.Services.UI
 import qs.Widgets
+import "CalendarUtils.js" as CalendarUtils
 
 Item {
     id: root
@@ -16,68 +18,36 @@ Item {
 
     readonly property var geometryPlaceholder: panelContainer
 
-    property var allEventsList: []
     property var eventsList: []
-    property bool loading: true
+    property bool loading: CalendarService.loading && CalendarService.events.length === 0
 
     function applyFilter() {
         var showAllDay = pluginApi?.pluginSettings?.showAllDayEvents || false;
-        var filtered = [];
-        for (var i = 0; i < allEventsList.length; i++) {
-            var ev = allEventsList[i];
-            if (ev.time === "Celý den" && !showAllDay) {
-                continue;
-            }
-            filtered.push(ev);
+        var events = CalendarUtils.upcoming(CalendarService.events, 7, showAllDay);
+        var list = [];
+        for (var i = 0; i < events.length; i++) {
+            var ev = events[i];
+            var allDay = CalendarUtils.isAllDay(ev);
+            list.push({
+                "day": CalendarUtils.formatDay(ev.start),
+                "time": allDay ? "Celý den" : CalendarUtils.formatTime(ev.start) + " – " + CalendarUtils.formatTime(ev.end),
+                "title": ev.summary,
+                "location": ev.location || "",
+                "calendar": ev.calendar || "",
+                "id": CalendarUtils.eventId(ev)
+            });
         }
-        root.eventsList = filtered;
+        root.eventsList = list;
     }
 
     anchors.fill: parent
 
-    Process {
-        id: agendaProcess
-        command: ["gcalcli", "agenda", "00:00", "+7d", "--tsv", "--nostarted"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var output = this.text.trim();
-                var lines = output.split('\n');
-                var parsedEvents = [];
-                if (lines.length > 1) {
-                    for (var i = 1; i < lines.length; i++) {
-                        var parts = lines[i].split('\t');
-                        if (parts.length >= 5) {
-                            var startDate = parts[0].trim();
-                            var startTime = parts[1].trim();
-                            var title = parts[4].trim();
-                            
-                            if (startTime === "") {
-                                var titleLower = title.toLowerCase();
-                                if (titleLower.indexOf("(office)") !== -1 || titleLower.indexOf("home office") !== -1 || titleLower === "doma") {
-                                    continue;
-                                }
-                            }
-                            
-                            var eventId = title + startDate + startTime;
-                            parsedEvents.push({
-                                "date": startDate,
-                                "time": startTime === "" ? "Celý den" : startTime,
-                                "title": title,
-                                "id": eventId
-                            });
-                        }
-                    }
-                }
-                root.allEventsList = parsedEvents;
-                root.applyFilter();
-                root.loading = false;
-            }
-        }
+    Connections {
+        target: CalendarService
+        function onEventsChanged() { root.applyFilter(); }
     }
 
-    Component.onCompleted: {
-        agendaProcess.running = true;
-    }
+    Component.onCompleted: root.applyFilter()
 
     Rectangle {
         id: panelContainer
@@ -121,10 +91,7 @@ Item {
                         NIconButton {
                             icon: "refresh"
                             tooltipText: "Obnovit"
-                            onClicked: {
-                                root.loading = true;
-                                agendaProcess.running = true;
-                            }
+                            onClicked: CalendarService.loadEvents()
                         }
                         NIconButton {
                             icon: "close"
@@ -174,6 +141,20 @@ Item {
                     spacing: Style.marginM
                     visible: !root.loading && root.eventsList.length > 0
 
+                    section.property: "day"
+                    section.delegate: Item {
+                        width: ListView.view.width
+                        height: Style.fontSizeL + Style.margin2M
+                        NText {
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: section
+                            font.weight: Font.Bold
+                            color: Color.mPrimary
+                            pointSize: Style.fontSizeL
+                        }
+                    }
+
                     delegate: Rectangle {
                         width: ListView.view.width
                         height: delegateLayout.implicitHeight + Style.margin2M
@@ -196,12 +177,14 @@ Item {
                                     font.weight: Font.Bold
                                     pointSize: Style.fontSizeM
                                     color: Color.mOnSurface
+                                    wrapMode: Text.Wrap
                                 }
                                 NText {
                                     Layout.fillWidth: true
-                                    text: modelData.date + " " + modelData.time
+                                    text: modelData.time + (modelData.location ? "  |  " + modelData.location : "")
                                     pointSize: Style.fontSizeS
                                     color: Color.mOnSurfaceVariant
+                                    elide: Text.ElideRight
                                 }
                             }
 
@@ -231,15 +214,25 @@ Item {
 
                 NText {
                     anchors.centerIn: parent
-                    text: "Načítám z Googlu..."
-                    visible: root.loading
+                    text: "Načítám kalendář..."
+                    visible: root.loading && CalendarService.available
                     color: Color.mOnSurfaceVariant
                 }
 
                 NText {
                     anchors.centerIn: parent
                     text: "Žádné schůzky na nejbližší týden"
-                    visible: !root.loading && root.eventsList.length === 0
+                    visible: CalendarService.available && !root.loading && root.eventsList.length === 0
+                    color: Color.mOnSurfaceVariant
+                }
+
+                NText {
+                    anchors.centerIn: parent
+                    width: parent.width - Style.margin2L
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.Wrap
+                    text: "Kalendář není dostupný.\nNainstaluj evolution-data-server a přidej Google účet v GNOME Online Accounts." + (CalendarService.lastError ? "\n\n" + CalendarService.lastError : "")
+                    visible: !CalendarService.available
                     color: Color.mOnSurfaceVariant
                 }
             }

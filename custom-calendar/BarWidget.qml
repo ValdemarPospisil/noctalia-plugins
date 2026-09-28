@@ -2,10 +2,12 @@ import Quickshell
 import Quickshell.Io
 import qs.Commons
 import qs.Modules.Bar.Extras
+import qs.Services.Location
 import qs.Services.UI
 import qs.Widgets
 import QtQuick
 import QtQuick.Controls
+import "CalendarUtils.js" as CalendarUtils
 
 Item {
     id: root
@@ -14,7 +16,7 @@ Item {
     property ShellScreen screen
     property string widgetId: ""
     property string section: ""
-    
+
     property string widgetText: "Načítám..."
     property string widgetTooltip: "Načítám z kalendáře..."
 
@@ -27,7 +29,7 @@ Item {
         id: notifyProcess
         property string title: ""
         property string message: ""
-        command: ["notify-send", "-a", "Google Kalendář", "-u", "critical", title, message]
+        command: ["notify-send", "-a", "Kalendář", "-u", "critical", title, message]
     }
 
     function sendNotification(title, message) {
@@ -36,139 +38,77 @@ Item {
         notifyProcess.running = true;
     }
 
-    Process {
-        id: gcalcliProcess
-        command: ["gcalcli", "agenda", "--tsv", "--nostarted"]
-        
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var output = this.text.trim();
-                if (output === "") {
-                    root.widgetText = "Chyba kalendáře";
-                    return;
-                }
-                
-                var lines = output.split('\n');
-                if (lines.length <= 1) {
-                    root.widgetText = "Žádný meeting";
-                    root.widgetTooltip = "Máš volno";
-                    return;
-                }
-                
-                var foundFirst = false;
-                var tooltipLines = [];
-                var todayDateStr = new Date().toISOString().split('T')[0];
-                
-                for (var i = 1; i < lines.length; i++) {
-                    var parts = lines[i].split('\t');
-                    if (parts.length >= 5) {
-                        var startDate = parts[0].trim();
-                        var startTime = parts[1].trim();
-                        var endDate = parts[2].trim();
-                        var title = parts[4].trim();
-                        
-                        if (startTime === "") {
-                            var titleLower = title.toLowerCase();
-                            if (titleLower.indexOf("(office)") !== -1 || titleLower.indexOf("home office") !== -1 || titleLower === "doma") {
-                                continue;
-                            }
-                            
-                            var showAllDay = pluginApi?.pluginSettings?.showAllDayEvents || false;
-                            if (!showAllDay) {
-                                continue;
-                            }
-                        }
-                        
-                        if (startDate === todayDateStr) {
-                            if (startTime === "") {
-                                tooltipLines.push("📅 Celý den: " + title);
-                            } else {
-                                tooltipLines.push("🕒 " + startTime + " - " + title);
-                            }
-                        }
-                        
-                        if (startTime === "") {
-                            continue; // Pro widget na liště přeskočíme celodenní
-                        }
-                        
-                        if (!foundFirst) {
-                            var dtStr = startDate + "T" + startTime + ":00";
-                            var eventDt = new Date(dtStr);
-                            var now = new Date();
-                            
-                            var diffMs = eventDt - now;
-                            var minutesLeft = Math.floor(diffMs / 60000);
-                            
-                            var timeLeftStr = "";
-                            if (minutesLeft >= 1440) {
-                                var days = Math.floor(minutesLeft / 1440);
-                                var hours = Math.floor((minutesLeft % 1440) / 60);
-                                timeLeftStr = days + "d " + hours + "h";
-                            } else if (minutesLeft >= 60) {
-                                var hours = Math.floor(minutesLeft / 60);
-                                var mins = minutesLeft % 60;
-                                timeLeftStr = hours + "h " + mins + "m";
-                            } else {
-                                timeLeftStr = minutesLeft + " min";
-                            }
-                            
-                            if (minutesLeft > 0) {
-                                root.widgetText = "📅 " + title + " (" + startTime + " - za " + timeLeftStr + ")";
-                            } else {
-                                root.widgetText = "📅 " + title + " (Nyní!)";
-                            }
-                            
-                            var eventId = title + startDate + startTime;
-                            
-                            var disabledMap = pluginApi?.pluginSettings?.disabledNotifications || {};
-                            var isDisabled = disabledMap[eventId];
-                            
-                            if (!isDisabled) {
-                                if (minutesLeft >= 9 && minutesLeft <= 10) {
-                                    if (!root.notifiedEvents[eventId + "_10"]) {
-                                        sendNotification("Meeting za 10 minut!", title + " začíná v " + startTime);
-                                        root.notifiedEvents[eventId + "_10"] = true;
-                                    }
-                                }
-                                
-                                if (minutesLeft >= 0 && minutesLeft <= 1) {
-                                    if (!root.notifiedEvents[eventId + "_1"]) {
-                                        sendNotification("Meeting začíná!", title + " právě začíná.");
-                                        root.notifiedEvents[eventId + "_1"] = true;
-                                    }
-                                }
-                            }
-                            
-                            foundFirst = true;
-                        }
-                    }
-                }
-                
-                if (!foundFirst) {
-                    root.widgetText = "Žádný meeting";
-                }
-                
-                if (tooltipLines.length > 0) {
-                    root.widgetTooltip = tooltipLines.join('\n');
-                } else {
-                    root.widgetTooltip = "Máš volno";
-                }
+    function update() {
+        if (!CalendarService.available) {
+            root.widgetText = "Kalendář nedostupný";
+            root.widgetTooltip = CalendarService.lastError || "Nainstaluj evolution-data-server a přidej Google účet v GNOME Online Accounts";
+            return;
+        }
+
+        var showAllDay = pluginApi?.pluginSettings?.showAllDayEvents || false;
+        var events = CalendarUtils.upcoming(CalendarService.events, 7, showAllDay);
+        var nowSec = Date.now() / 1000;
+        var endOfToday = new Date();
+        endOfToday.setHours(23, 59, 59, 999);
+
+        var tooltipLines = [];
+        var next = null;
+        for (var i = 0; i < events.length; i++) {
+            var ev = events[i];
+            var allDay = CalendarUtils.isAllDay(ev);
+            if (ev.start * 1000 <= endOfToday.getTime()) {
+                tooltipLines.push(allDay ? "📅 Celý den: " + ev.summary : "🕒 " + CalendarUtils.formatTime(ev.start) + " - " + ev.summary);
+            }
+            if (!allDay && next === null) {
+                next = ev;
             }
         }
-    }
 
-    Timer {
-        interval: 60000 // Aktualizace každou minutu
-        running: true
-        repeat: true
-        onTriggered: {
-            gcalcliProcess.running = true;
+        root.widgetTooltip = tooltipLines.length > 0 ? tooltipLines.join('\n') : "Máš volno";
+
+        if (next === null) {
+            root.widgetText = "Žádný meeting";
+            return;
+        }
+
+        var startTime = CalendarUtils.formatTime(next.start);
+        var minutesLeft = Math.floor((next.start - nowSec) / 60);
+        if (minutesLeft > 0) {
+            root.widgetText = "📅 " + next.summary + " (" + startTime + " - za " + CalendarUtils.formatCountdown(minutesLeft) + ")";
+        } else {
+            root.widgetText = "📅 " + next.summary + " (Nyní!)";
+        }
+
+        var eventId = CalendarUtils.eventId(next);
+        var disabledMap = pluginApi?.pluginSettings?.disabledNotifications || {};
+        if (disabledMap[eventId]) {
+            return;
+        }
+        if (minutesLeft >= 9 && minutesLeft <= 10 && !root.notifiedEvents[eventId + "_10"]) {
+            sendNotification("Meeting za 10 minut!", next.summary + " začíná v " + startTime);
+            root.notifiedEvents[eventId + "_10"] = true;
+        }
+        if (minutesLeft >= 0 && minutesLeft <= 1 && !root.notifiedEvents[eventId + "_1"]) {
+            sendNotification("Meeting začíná!", next.summary + " právě začíná.");
+            root.notifiedEvents[eventId + "_1"] = true;
         }
     }
 
-    Component.onCompleted: {
-        gcalcliProcess.running = true;
+    Connections {
+        target: CalendarService
+        function onEventsChanged() { root.update(); }
+        function onAvailableChanged() { root.update(); }
     }
+
+    // CalendarService refreshes events itself; this only keeps the countdown current
+    Timer {
+        interval: 30000
+        running: true
+        repeat: true
+        onTriggered: root.update()
+    }
+
+    Component.onCompleted: root.update()
 
     BarPill {
         id: pill
