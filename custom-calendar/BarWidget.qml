@@ -7,7 +7,6 @@ import qs.Services.UI
 import qs.Widgets
 import QtQuick
 import QtQuick.Controls
-import "CalendarUtils.js" as CalendarUtils
 
 Item {
     id: root
@@ -21,6 +20,8 @@ Item {
     property string widgetTooltip: "Načítám z kalendáře..."
 
     property var notifiedEvents: ({})
+
+    readonly property var utils: pluginApi?.mainInstance || null
 
     implicitWidth: pill.width
     implicitHeight: pill.height
@@ -39,6 +40,8 @@ Item {
     }
 
     function update() {
+        if (!utils)
+            return;
         if (!CalendarService.available) {
             root.widgetText = "Kalendář nedostupný";
             root.widgetTooltip = CalendarService.lastError || "Nainstaluj evolution-data-server a přidej Google účet v GNOME Online Accounts";
@@ -46,7 +49,7 @@ Item {
         }
 
         var showAllDay = pluginApi?.pluginSettings?.showAllDayEvents || false;
-        var events = CalendarUtils.upcoming(CalendarService.events, 7, showAllDay);
+        var events = utils.upcoming(CalendarService.events, 7, showAllDay);
         var nowSec = Date.now() / 1000;
         var endOfToday = new Date();
         endOfToday.setHours(23, 59, 59, 999);
@@ -55,9 +58,9 @@ Item {
         var next = null;
         for (var i = 0; i < events.length; i++) {
             var ev = events[i];
-            var allDay = CalendarUtils.isAllDay(ev);
+            var allDay = utils.isAllDay(ev);
             if (ev.start * 1000 <= endOfToday.getTime()) {
-                tooltipLines.push(allDay ? "📅 Celý den: " + ev.summary : "🕒 " + CalendarUtils.formatTime(ev.start) + " - " + ev.summary);
+                tooltipLines.push(allDay ? "📅 Celý den: " + ev.summary : "🕒 " + utils.formatTime(ev.start) + " - " + ev.summary);
             }
             if (!allDay && next === null) {
                 next = ev;
@@ -71,15 +74,15 @@ Item {
             return;
         }
 
-        var startTime = CalendarUtils.formatTime(next.start);
+        var startTime = utils.formatTime(next.start);
         var minutesLeft = Math.floor((next.start - nowSec) / 60);
         if (minutesLeft > 0) {
-            root.widgetText = "📅 " + next.summary + " (" + startTime + " - za " + CalendarUtils.formatCountdown(minutesLeft) + ")";
+            root.widgetText = "📅 " + next.summary + " (" + startTime + " - za " + utils.formatCountdown(minutesLeft) + ")";
         } else {
             root.widgetText = "📅 " + next.summary + " (Nyní!)";
         }
 
-        var eventId = CalendarUtils.eventId(next);
+        var eventId = utils.eventId(next);
         var disabledMap = pluginApi?.pluginSettings?.disabledNotifications || {};
         if (disabledMap[eventId]) {
             return;
@@ -108,6 +111,7 @@ Item {
         onTriggered: root.update()
     }
 
+    onUtilsChanged: root.update()
     Component.onCompleted: root.update()
 
     BarPill {

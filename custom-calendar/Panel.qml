@@ -7,7 +7,6 @@ import qs.Commons
 import qs.Services.Location
 import qs.Services.UI
 import qs.Widgets
-import "CalendarUtils.js" as CalendarUtils
 
 Item {
     id: root
@@ -19,22 +18,25 @@ Item {
     readonly property var geometryPlaceholder: panelContainer
 
     property var eventsList: []
+    readonly property var utils: pluginApi?.mainInstance || null
     property bool loading: CalendarService.loading && CalendarService.events.length === 0
 
     function applyFilter() {
+        if (!utils)
+            return;
         var showAllDay = pluginApi?.pluginSettings?.showAllDayEvents || false;
-        var events = CalendarUtils.upcoming(CalendarService.events, 7, showAllDay);
+        var events = utils.upcoming(CalendarService.events, 7, showAllDay);
         var list = [];
         for (var i = 0; i < events.length; i++) {
             var ev = events[i];
-            var allDay = CalendarUtils.isAllDay(ev);
+            var allDay = utils.isAllDay(ev);
             list.push({
-                "day": CalendarUtils.formatDay(ev.start),
-                "time": allDay ? "Celý den" : CalendarUtils.formatTime(ev.start) + " – " + CalendarUtils.formatTime(ev.end),
+                "day": utils.formatDay(ev.start),
+                "time": allDay ? "Celý den" : utils.formatTime(ev.start) + " – " + utils.formatTime(ev.end),
                 "title": ev.summary,
                 "location": ev.location || "",
                 "calendar": ev.calendar || "",
-                "id": CalendarUtils.eventId(ev)
+                "id": utils.eventId(ev)
             });
         }
         root.eventsList = list;
@@ -47,6 +49,7 @@ Item {
         function onEventsChanged() { root.applyFilter(); }
     }
 
+    onUtilsChanged: root.applyFilter()
     Component.onCompleted: root.applyFilter()
 
     Rectangle {

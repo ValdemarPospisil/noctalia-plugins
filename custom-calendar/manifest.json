@@ -1,7 +1,7 @@
 {
   "id": "custom-calendar",
   "name": "Můj Kalendář",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "minNoctaliaVersion": "4.6.6",
   "author": "Valdemar",
   "license": "MIT",
@@ -12,6 +12,7 @@
     "Panel"
   ],
   "entryPoints": {
+    "main": "Main.qml",
     "barWidget": "BarWidget.qml",
     "panel": "Panel.qml"
   },
