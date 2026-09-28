@@ -5,9 +5,15 @@
   "minNoctaliaVersion": "4.6.6",
   "author": "Valdemar",
   "description": "GitLab Issues and MRs assigned to me",
-  "tags": ["GitLab", "Work", "Panel"],
+  "tags": [
+    "GitLab",
+    "Work",
+    "Panel"
+  ],
   "entryPoints": {
     "barWidget": "BarWidget.qml",
     "panel": "Panel.qml"
-  }
+  },
+  "license": "MIT",
+  "repository": "https://github.com/ValdemarPospisil/noctalia-plugins"
 }

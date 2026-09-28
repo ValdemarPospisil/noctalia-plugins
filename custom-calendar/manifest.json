@@ -23,5 +23,6 @@
       "disabledNotifications": {},
       "showAllDayEvents": false
     }
-  }
+  },
+  "repository": "https://github.com/ValdemarPospisil/noctalia-plugins"
 }

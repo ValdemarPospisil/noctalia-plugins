@@ -5,7 +5,11 @@
   "minNoctaliaVersion": "4.6.6",
   "author": "Valdemar",
   "description": "Správa Docker kontejnerů na vzdáleném serveru",
-  "tags": ["Server", "Docker", "Panel"],
+  "tags": [
+    "Server",
+    "Docker",
+    "Panel"
+  ],
   "entryPoints": {
     "barWidget": "BarWidget.qml",
     "panel": "Panel.qml"
@@ -14,5 +18,7 @@
     "defaultSettings": {
       "remoteHost": "valdemar@void"
     }
-  }
+  },
+  "license": "MIT",
+  "repository": "https://github.com/ValdemarPospisil/noctalia-plugins"
 }

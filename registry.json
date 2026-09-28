@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "plugins": [
+    {
+      "id": "custom-calendar",
+      "name": "Můj Kalendář",
+      "version": "1.0.0",
+      "author": "Valdemar",
+      "description": "Vlastní kalendářový widget propojený s gcalcli.",
+      "minNoctaliaVersion": "4.6.6",
+      "license": "MIT",
+      "tags": [
+        "Bar",
+        "Productivity",
+        "Panel"
+      ],
+      "official": false,
+      "repository": "https://github.com/ValdemarPospisil/noctalia-plugins",
+      "lastUpdated": "2026-07-05T10:39:04+02:00"
+    },
+    {
+      "id": "gitlab-issues",
+      "name": "GitLab Úkoly",
+      "version": "1.0.0",
+      "author": "Valdemar",
+      "description": "GitLab Issues and MRs assigned to me",
+      "minNoctaliaVersion": "4.6.6",
+      "license": "MIT",
+      "tags": [
+        "GitLab",
+        "Work",
+        "Panel"
+      ],
+      "official": false,
+      "repository": "https://github.com/ValdemarPospisil/noctalia-plugins",
+      "lastUpdated": "2026-07-05T18:11:39+02:00"
+    },
+    {
+      "id": "remote-docker",
+      "name": "Domácí Server",
+      "version": "1.0.0",
+      "author": "Valdemar",
+      "description": "Správa Docker kontejnerů na vzdáleném serveru",
+      "minNoctaliaVersion": "4.6.6",
+      "license": "MIT",
+      "tags": [
+        "Server",
+        "Docker",
+        "Panel"
+      ],
+      "official": false,
+      "repository": "https://github.com/ValdemarPospisil/noctalia-plugins",
+      "lastUpdated": "2026-07-05T13:20:11+02:00"
+    }
+  ]
+}
